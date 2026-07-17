@@ -1,162 +1,232 @@
+import { Link } from "react-router-dom";
 import {
-  BookOpen,
   CalendarDays,
+  Car,
+  FileText,
+  HeartPulse,
+  Home,
+  Landmark,
   Package,
+  Receipt,
+  ShieldCheck,
   ShoppingCart,
+  Users,
+  Utensils,
 } from "lucide-react";
 
-function Dashboard() {
+const modules = [
+  {
+    name: "Food Management",
+    path: "/inventory",
+    icon: Utensils,
+    status: "Active",
+    details: [
+      "Inventory, shopping, meals, and recipes",
+      "Low-stock alerts coming next",
+      "Receipts connected to food spending",
+    ],
+  },
+  {
+    name: "Budget",
+    path: "/budget",
+    icon: Landmark,
+    status: "Active",
+    details: [
+      "$40,955 total credit-card debt",
+      "$1,095 monthly minimum payments",
+      "$740 estimated monthly interest",
+    ],
+  },
+  {
+    name: "Family",
+    path: "/family",
+    icon: Users,
+    status: "In Development",
+    details: [
+      "7 household members",
+      "Profiles, schedules, and reminders",
+      "Shared family information",
+    ],
+  },
+  {
+    name: "Health",
+    path: "/health",
+    icon: HeartPulse,
+    status: "Planned",
+    details: [
+      "Fitness and nutrition goals",
+      "Appointments and health records",
+      "Family progress tracking",
+    ],
+  },
+  {
+    name: "Home",
+    path: "/home",
+    icon: Home,
+    status: "Planned",
+    details: [
+      "Maintenance schedules",
+      "Home projects and repairs",
+      "Appliances and warranties",
+    ],
+  },
+  {
+    name: "Vehicles",
+    path: "/vehicles",
+    icon: Car,
+    status: "Planned",
+    details: [
+      "Maintenance and service records",
+      "Fuel and mileage tracking",
+      "Insurance and registration",
+    ],
+  },
+  {
+    name: "Documents",
+    path: "/documents",
+    icon: FileText,
+    status: "Planned",
+    details: [
+      "Important family records",
+      "Receipts and warranties",
+      "Secure document storage",
+    ],
+  },
+  {
+    name: "Security",
+    path: "/security",
+    icon: ShieldCheck,
+    status: "Future Module",
+    details: [
+      "Emergency information",
+      "Family safety tools",
+      "Location features planned later",
+    ],
+  },
+];
+
+const quickStats = [
+  {
+    label: "Active Modules",
+    value: "2",
+    icon: Package,
+  },
+  {
+    label: "Household Members",
+    value: "7",
+    icon: Users,
+  },
+  {
+    label: "Debt Accounts",
+    value: "4",
+    icon: Receipt,
+  },
+  {
+    label: "Food Tools",
+    value: "5",
+    icon: ShoppingCart,
+  },
+];
+
+export default function Dashboard() {
   return (
-    <main className="flex-1 p-5 md:p-8">
-      <div className="mb-7">
-        <p className="text-sm font-medium text-emerald-700">
-          Sunday food reset
+    <div className="w-full p-6">
+      <div className="mb-8">
+        <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">
+          Family Management Operating System
         </p>
 
-        <h2 className="mt-1 text-3xl font-bold">Good evening, Derek</h2>
+        <h1 className="text-4xl font-bold text-stone-900">
+          FMOS Dashboard
+        </h1>
 
-        <p className="mt-2 text-stone-600">
-          Here is the current food-management overview.
+        <p className="mt-2 text-stone-500">
+          One place to view and manage the Dodd family household.
         </p>
       </div>
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <DashboardCard
-          title="Inventory"
-          value="17 items"
-          note="6 items below minimum"
-          icon={Package}
-        />
+      <section className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {quickStats.map((stat) => {
+          const Icon = stat.icon;
 
-        <DashboardCard
-          title="Shopping"
-          value="0 items"
-          note="List is ready to generate"
-          icon={ShoppingCart}
-        />
+          return (
+            <div
+              key={stat.label}
+              className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm"
+            >
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-emerald-100 p-3">
+                  <Icon className="h-5 w-5 text-emerald-700" />
+                </div>
 
-        <DashboardCard
-          title="Meal plan"
-          value="7 days"
-          note="Chicken nugget salads tonight"
-          icon={CalendarDays}
-        />
-
-        <DashboardCard
-          title="Recipes"
-          value="6 recipes"
-          note="Family recipe library"
-          icon={BookOpen}
-        />
+                <div>
+                  <p className="text-sm text-stone-500">{stat.label}</p>
+                  <p className="text-2xl font-bold text-stone-900">
+                    {stat.value}
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </section>
 
-      <section className="mt-7 grid gap-5 lg:grid-cols-2">
-        <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-lg font-bold">Items running low</h3>
+      <section>
+        <div className="mb-4 flex items-end justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-bold text-stone-900">
+              Family Management Modules
+            </h2>
 
-            <button className="text-sm font-semibold text-emerald-700">
-              View inventory
-            </button>
+            <p className="text-sm text-stone-500">
+              Select a module to view details and manage that part of family life.
+            </p>
           </div>
 
-          <div className="space-y-3">
-            <InventoryRow name="Eggs" current="0 dozen" target="6 dozen" />
-            <InventoryRow
-              name="Activia yogurt"
-              current="6 cups"
-              target="28 cups"
-            />
-            <InventoryRow name="Apples" current="3" target="28" />
-            <InventoryRow
-              name="Ratio yogurt"
-              current="3 cups"
-              target="7 cups"
-            />
+          <div className="hidden items-center gap-2 text-sm text-stone-500 md:flex">
+            <CalendarDays className="h-4 w-4" />
+            FMOS Overview
           </div>
         </div>
 
-        <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-lg font-bold">This week’s meals</h3>
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+          {modules.map((module) => {
+            const Icon = module.icon;
 
-            <button className="text-sm font-semibold text-emerald-700">
-              Edit plan
-            </button>
-          </div>
+            return (
+              <Link
+                key={module.name}
+                to={module.path}
+                className="group rounded-2xl border border-stone-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-emerald-300 hover:shadow-md"
+              >
+                <div className="mb-5 flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-xl bg-emerald-100 p-3 transition group-hover:bg-emerald-200">
+                      <Icon className="h-6 w-6 text-emerald-700" />
+                    </div>
 
-          <div className="space-y-3">
-            <MealRow day="Monday" meal="Simple crockpot chicken" />
-            <MealRow day="Tuesday" meal="Ground beef tacos" />
-            <MealRow day="Wednesday" meal="Flexible meal" />
-            <MealRow day="Thursday" meal="Simple spaghetti" />
-            <MealRow day="Friday" meal="Salmon and broccoli" />
-            <MealRow day="Saturday" meal="Homemade pizza" />
-            <MealRow day="Sunday" meal="Chicken fajitas" />
-          </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-stone-900">
+                        {module.name}
+                      </h3>
+
+                      <p className="text-sm font-medium text-emerald-700">
+                        {module.status}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2 text-sm text-stone-600">
+                  {module.details.map((detail) => (
+                    <p key={detail}>{detail}</p>
+                  ))}
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </section>
-    </main>
-  );
-}
-
-type DashboardCardProps = {
-  title: string;
-  value: string;
-  note: string;
-  icon: typeof Package;
-};
-
-function DashboardCard({
-  title,
-  value,
-  note,
-  icon: Icon,
-}: DashboardCardProps) {
-  return (
-    <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-      <div className="mb-4 flex items-center justify-between">
-        <span className="text-sm font-semibold text-stone-500">{title}</span>
-
-        <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700">
-          <Icon size={20} />
-        </div>
-      </div>
-
-      <p className="text-2xl font-bold">{value}</p>
-      <p className="mt-1 text-sm text-stone-500">{note}</p>
     </div>
   );
 }
-
-function InventoryRow({
-  name,
-  current,
-  target,
-}: {
-  name: string;
-  current: string;
-  target: string;
-}) {
-  return (
-    <div className="flex items-center justify-between rounded-xl bg-amber-50 px-4 py-3">
-      <div>
-        <p className="font-semibold">{name}</p>
-        <p className="text-sm text-stone-500">Minimum: {target}</p>
-      </div>
-
-      <span className="font-bold text-amber-800">{current}</span>
-    </div>
-  );
-}
-
-function MealRow({ day, meal }: { day: string; meal: string }) {
-  return (
-    <div className="flex items-center justify-between border-b border-stone-100 pb-2 last:border-0">
-      <span className="font-semibold">{day}</span>
-      <span className="text-right text-sm text-stone-600">{meal}</span>
-    </div>
-  );
-}
-
-export default Dashboard;

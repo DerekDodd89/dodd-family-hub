@@ -9,9 +9,12 @@ import {
   Users,
   Utensils,
 } from "lucide-react";
-import { NavLink, Route, Routes } from "react-router";
-import Dashboard from "./pages/dashboard";
+import { NavLink, Route, Routes } from "react-router-dom";
+import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
+import Shopping from "./pages/Shopping";
+import Recipes from "./pages/Recipes";
+import Budget from "./pages/Budget";
 
 const navigation = [
   { name: "Dashboard", path: "/", icon: Home },
@@ -35,7 +38,7 @@ function App() {
 
           <div>
             <h1 className="text-xl font-bold">Dodd Family Hub</h1>
-            <p className="text-sm text-stone-500">Food Management</p>
+            <p className="text-sm text-stone-500">Family Management Operating System</p>
           </div>
         </div>
       </header>
@@ -69,6 +72,9 @@ function App() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/inventory" element={<Inventory />} />
+          <Route path="/shopping" element={<Shopping />} />
+          <Route path="/recipes" element={<Recipes />} />
+          <Route path="/budget" element={<Budget />} />
           <Route
             path="*"
             element={
