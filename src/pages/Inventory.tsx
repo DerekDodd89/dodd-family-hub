@@ -1,9 +1,20 @@
 import { inventoryItems } from "../data/inventory";
+import { useRef, useState } from "react";
 
 export default function Inventory() {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
   return (
     <main className="flex-1 p-8">
       <h1 className="text-3xl font-bold">Food Inventory</h1>
+      <div className="mt-4">
+  <button
+    onClick={() => fileInputRef.current?.click()}
+    className="rounded-lg bg-emerald-700 px-4 py-2 text-white"
+  >
+    Update Inventory from Photos
+  </button>
+</div>
 
       <p className="mt-2 text-stone-500">
         Current pantry, refrigerator, and freezer inventory.
@@ -58,6 +69,23 @@ export default function Inventory() {
       <button className="mt-6 rounded-lg bg-emerald-700 px-5 py-3 font-semibold text-white hover:bg-emerald-800">
         + Update Inventory
       </button>
+      <input
+  ref={fileInputRef}
+  type="file"
+  accept="image/*"
+  multiple
+  capture="environment"
+  className="hidden"
+  onChange={(e) => {
+    const files = Array.from(e.target.files || []);
+
+    const imageUrls = files.map((file) =>
+      URL.createObjectURL(file)
+    );
+
+    setSelectedImages(imageUrls);
+  }}
+  />
     </main>
   );
 }
