@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 
 export default function Inventory() {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [, setSelectedImages] = useState<string[]>([]);
   return (
     <main className="flex-1 p-8">
       <h1 className="text-3xl font-bold">Food Inventory</h1>
