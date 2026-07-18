@@ -1,11 +1,6 @@
 import {
-  BookOpen,
-  CalendarDays,
   Home,
-  Package,
   Receipt,
-  Settings,
-  ShoppingCart,
   Users,
   Utensils,
 } from "lucide-react";
@@ -15,16 +10,13 @@ import Inventory from "./pages/Inventory";
 import Shopping from "./pages/Shopping";
 import Recipes from "./pages/Recipes";
 import Budget from "./pages/Budget";
+import Food from "./pages/Food";
 
 const navigation = [
   { name: "Dashboard", path: "/", icon: Home },
-  { name: "Inventory", path: "/inventory", icon: Package },
-  { name: "Shopping", path: "/shopping", icon: ShoppingCart },
-  { name: "Meal Plan", path: "/meal-plan", icon: CalendarDays },
-  { name: "Recipes", path: "/recipes", icon: BookOpen },
-  { name: "Receipts", path: "/receipts", icon: Receipt },
+  { name: "Food", path: "/food", icon: Utensils },
+  { name: "Budget", path: "/budget", icon: Receipt },
   { name: "Family", path: "/family", icon: Users },
-  { name: "Settings", path: "/settings", icon: Settings },
 ];
 
 function App() {
@@ -71,6 +63,7 @@ function App() {
 
         <Routes>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/" element={<Food />} />
           <Route path="/inventory" element={<Inventory />} />
           <Route path="/shopping" element={<Shopping />} />
           <Route path="/recipes" element={<Recipes />} />
