@@ -11,6 +11,7 @@ import {
 import {
   type ChangeEvent,
   type FormEvent,
+  type ReactNode,
   useEffect,
   useMemo,
   useRef,
@@ -21,6 +22,11 @@ import { supabase } from "../lib/supabase";
 
 type StorageLocation = "Pantry" | "Refrigerator" | "Freezer";
 type InventoryFilter = "All" | StorageLocation;
+
+type QuantityField =
+  | "current_quantity"
+  | "minimum_quantity"
+  | "target_quantity";
 
 type InventoryItem = {
   id: string;
@@ -87,13 +93,15 @@ export default function Inventory() {
     useState<NewItemForm>(emptyNewItem);
 
   const [loading, setLoading] = useState(true);
+
   const [savingItemId, setSavingItemId] = useState<
     string | null
   >(null);
+
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    loadInventory();
+    void loadInventory();
   }, []);
 
   async function loadInventory() {
@@ -194,14 +202,35 @@ export default function Inventory() {
     });
   }
 
-  async function saveQuantity(
+  function updateLocalQuantity(
     id: string,
-    quantity: number,
+    field: QuantityField,
+    value: number,
   ) {
-    const safeQuantity = Math.max(
-      0,
-      Number.isFinite(quantity) ? quantity : 0,
+    const safeValue = Number.isFinite(value)
+      ? Math.max(0, value)
+      : 0;
+
+    setInventoryItems((currentItems) =>
+      currentItems.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              [field]: safeValue,
+            }
+          : item,
+      ),
     );
+  }
+
+  async function saveField(
+    id: string,
+    field: QuantityField,
+    value: number,
+  ) {
+    const safeValue = Number.isFinite(value)
+      ? Math.max(0, value)
+      : 0;
 
     setSavingItemId(id);
     setErrorMessage("");
@@ -209,39 +238,36 @@ export default function Inventory() {
     const { error } = await supabase
       .from("inventory_items")
       .update({
-        current_quantity: safeQuantity,
+        [field]: safeValue,
         updated_at: new Date().toISOString(),
       })
       .eq("id", id);
 
     if (error) {
       console.error(error);
-      setErrorMessage("The quantity could not be saved.");
+      setErrorMessage("The inventory change could not be saved.");
       setSavingItemId(null);
+      await loadInventory();
       return;
     }
 
-    setInventoryItems((currentItems) =>
-      currentItems.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              current_quantity: safeQuantity,
-            }
-          : item,
-      ),
-    );
-
+    updateLocalQuantity(id, field, safeValue);
     setSavingItemId(null);
   }
 
-  async function adjustQuantity(
+  async function adjustCurrentQuantity(
     item: InventoryItem,
     amount: number,
   ) {
-    await saveQuantity(
-      item.id,
+    const updatedQuantity = Math.max(
+      0,
       item.current_quantity + amount,
+    );
+
+    await saveField(
+      item.id,
+      "current_quantity",
+      updatedQuantity,
     );
   }
 
@@ -332,10 +358,11 @@ export default function Inventory() {
       preferred_store: data.preferred_store,
     };
 
-    setInventoryItems((currentItems) => [
-      ...currentItems,
-      savedItem,
-    ]);
+    setInventoryItems((currentItems) =>
+      [...currentItems, savedItem].sort((a, b) =>
+        a.name.localeCompare(b.name),
+      ),
+    );
 
     setNewItem(emptyNewItem);
     setShowAddItemForm(false);
@@ -368,7 +395,7 @@ export default function Inventory() {
           <div className="flex flex-col gap-2 sm:flex-row">
             <button
               type="button"
-              onClick={loadInventory}
+              onClick={() => void loadInventory()}
               className="rounded-xl border border-stone-300 bg-white px-4 py-3 font-semibold text-stone-700 hover:bg-stone-50"
             >
               Refresh Inventory
@@ -434,9 +461,7 @@ export default function Inventory() {
 
                   <button
                     type="button"
-                    onClick={() =>
-                      openPhotoPicker(location)
-                    }
+                    onClick={() => openPhotoPicker(location)}
                     className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-700 px-4 py-2.5 font-semibold text-emerald-700 hover:bg-emerald-50"
                   >
                     <Camera size={19} />
@@ -455,6 +480,7 @@ export default function Inventory() {
                         type="button"
                         onClick={() => removePhoto(location)}
                         className="rounded-lg p-2 text-stone-500 hover:bg-stone-100 hover:text-red-600"
+                        aria-label={`Remove ${location} photo`}
                       >
                         <X size={18} />
                       </button>
@@ -467,7 +493,8 @@ export default function Inventory() {
                     />
 
                     <p className="mt-3 text-xs text-stone-500">
-                      Photo recognition will be connected next.
+                      AI photo recognition will later propose
+                      inventory changes for approval.
                     </p>
                   </div>
                 )}
@@ -497,6 +524,7 @@ export default function Inventory() {
                     }))
                   }
                   className="w-full rounded-xl border border-stone-300 px-3 py-2.5"
+                  placeholder="Example: Brown rice"
                 />
               </FormField>
 
@@ -510,6 +538,7 @@ export default function Inventory() {
                     }))
                   }
                   className="w-full rounded-xl border border-stone-300 px-3 py-2.5"
+                  placeholder="Dairy, Produce, Baking..."
                 />
               </FormField>
 
@@ -544,6 +573,7 @@ export default function Inventory() {
                     }))
                   }
                   className="w-full rounded-xl border border-stone-300 px-3 py-2.5"
+                  placeholder="items, pounds, gallons..."
                 />
               </FormField>
 
@@ -590,6 +620,7 @@ export default function Inventory() {
                     }))
                   }
                   className="w-full rounded-xl border border-stone-300 px-3 py-2.5"
+                  placeholder="United, H-E-B, Lowe's..."
                 />
               </FormField>
 
@@ -651,7 +682,7 @@ export default function Inventory() {
                     key={item.id}
                     className="p-4 md:p-5"
                   >
-                    <div className="flex flex-col gap-4 md:flex-row md:items-center">
+                    <div className="flex flex-col gap-5 lg:flex-row lg:items-center">
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <h3 className="text-lg font-bold">
@@ -675,83 +706,129 @@ export default function Inventory() {
                           {item.category} · {item.location}
                         </p>
 
-                        <p className="mt-1 text-sm text-stone-500">
-                          Minimum: {item.minimum_quantity}{" "}
-                          {item.unit} · Target:{" "}
-                          {item.target_quantity} {item.unit}
-                        </p>
+                        {item.preferred_store && (
+                          <p className="mt-1 text-sm text-stone-500">
+                            Preferred store:{" "}
+                            {item.preferred_store}
+                          </p>
+                        )}
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          type="button"
-                          disabled={isSaving}
-                          onClick={() =>
-                            adjustQuantity(item, -1)
-                          }
-                          className="rounded-xl border border-stone-300 p-2.5 disabled:opacity-50"
-                        >
-                          <Minus size={20} />
-                        </button>
-
-                        <label className="flex items-center gap-2 rounded-xl border border-stone-300 px-3 py-2">
-                          <input
-                            type="number"
-                            min="0"
+                      <div className="flex flex-col gap-3">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                          <QuantityEditor
+                            label="Current"
                             value={item.current_quantity}
+                            unit={item.unit}
                             disabled={isSaving}
-                            onChange={(event) => {
-                              setInventoryItems(
-                                (currentItems) =>
-                                  currentItems.map(
-                                    (currentItem) =>
-                                      currentItem.id ===
-                                      item.id
-                                        ? {
-                                            ...currentItem,
-                                            current_quantity:
-                                              Number(
-                                                event.target
-                                                  .value,
-                                              ),
-                                          }
-                                        : currentItem,
-                                  ),
-                              );
-                            }}
-                            onBlur={(event) =>
-                              saveQuantity(
+                            onChange={(value) =>
+                              updateLocalQuantity(
                                 item.id,
-                                Number(event.target.value),
+                                "current_quantity",
+                                value,
                               )
                             }
-                            className="w-16 bg-transparent text-center font-bold outline-none"
+                            onSave={(value) =>
+                              void saveField(
+                                item.id,
+                                "current_quantity",
+                                value,
+                              )
+                            }
                           />
 
-                          <span className="text-sm text-stone-500">
-                            {item.unit}
-                          </span>
-                        </label>
+                          <QuantityEditor
+                            label="Minimum"
+                            value={item.minimum_quantity}
+                            unit={item.unit}
+                            disabled={isSaving}
+                            onChange={(value) =>
+                              updateLocalQuantity(
+                                item.id,
+                                "minimum_quantity",
+                                value,
+                              )
+                            }
+                            onSave={(value) =>
+                              void saveField(
+                                item.id,
+                                "minimum_quantity",
+                                value,
+                              )
+                            }
+                          />
 
-                        <button
-                          type="button"
-                          disabled={isSaving}
-                          onClick={() =>
-                            adjustQuantity(item, 1)
-                          }
-                          className="rounded-xl border border-stone-300 p-2.5 disabled:opacity-50"
-                        >
-                          <Plus size={20} />
-                        </button>
+                          <QuantityEditor
+                            label="Target"
+                            value={item.target_quantity}
+                            unit={item.unit}
+                            disabled={isSaving}
+                            onChange={(value) =>
+                              updateLocalQuantity(
+                                item.id,
+                                "target_quantity",
+                                value,
+                              )
+                            }
+                            onSave={(value) =>
+                              void saveField(
+                                item.id,
+                                "target_quantity",
+                                value,
+                              )
+                            }
+                          />
+                        </div>
 
-                        <button
-                          type="button"
-                          disabled={isSaving}
-                          onClick={() => deleteItem(item.id)}
-                          className="rounded-xl border border-red-200 p-2.5 text-red-600 disabled:opacity-50"
-                        >
-                          <Trash2 size={20} />
-                        </button>
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            disabled={isSaving}
+                            onClick={() =>
+                              void adjustCurrentQuantity(
+                                item,
+                                -1,
+                              )
+                            }
+                            className="inline-flex items-center gap-2 rounded-xl border border-stone-300 px-3 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-100 disabled:opacity-50"
+                          >
+                            <Minus size={18} />
+                            Current
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={isSaving}
+                            onClick={() =>
+                              void adjustCurrentQuantity(
+                                item,
+                                1,
+                              )
+                            }
+                            className="inline-flex items-center gap-2 rounded-xl border border-stone-300 px-3 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-100 disabled:opacity-50"
+                          >
+                            <Plus size={18} />
+                            Current
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={isSaving}
+                            onClick={() =>
+                              void deleteItem(item.id)
+                            }
+                            className="inline-flex items-center gap-2 rounded-xl border border-red-200 px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
+                          >
+                            <Trash2 size={18} />
+                            Delete
+                          </button>
+                        </div>
+
+                        {isSaving && (
+                          <p className="text-right text-xs font-medium text-emerald-700">
+                            Saving...
+                          </p>
+                        )}
                       </div>
                     </div>
                   </article>
@@ -769,11 +846,65 @@ export default function Inventory() {
         </section>
 
         <p className="mt-4 text-center text-xs text-stone-500">
-          Inventory changes are saved to Supabase and shared
-          across devices.
+          Current, minimum, and target quantities are saved
+          to Supabase and shared across devices.
         </p>
       </div>
     </main>
+  );
+}
+
+function QuantityEditor({
+  label,
+  value,
+  unit,
+  disabled,
+  onChange,
+  onSave,
+}: {
+  label: string;
+  value: number;
+  unit: string;
+  disabled: boolean;
+  onChange: (value: number) => void;
+  onSave: (value: number) => void;
+}) {
+  return (
+    <label className="rounded-xl border border-stone-300 bg-white p-3">
+      <span className="block text-xs font-semibold uppercase tracking-wide text-stone-500">
+        {label}
+      </span>
+
+      <div className="mt-2 flex items-center gap-2">
+        <input
+          type="number"
+          min="0"
+          step="1"
+          value={value}
+          disabled={disabled}
+          onChange={(event) =>
+            onChange(
+              Math.max(0, Number(event.target.value)),
+            )
+          }
+          onBlur={(event) =>
+            onSave(
+              Math.max(0, Number(event.target.value)),
+            )
+          }
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.currentTarget.blur();
+            }
+          }}
+          className="w-20 rounded-lg border border-stone-200 px-2 py-1.5 text-center font-bold outline-none focus:border-emerald-600 disabled:bg-stone-100"
+        />
+
+        <span className="min-w-0 truncate text-xs text-stone-500">
+          {unit}
+        </span>
+      </div>
+    </label>
   );
 }
 
@@ -782,7 +913,7 @@ function FormField({
   children,
 }: {
   label: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <label className="block">
