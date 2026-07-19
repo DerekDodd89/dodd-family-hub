@@ -11,6 +11,7 @@ import {
 import {
   type ChangeEvent,
   type FormEvent,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -20,6 +21,8 @@ import {
   inventoryItems as startingInventory,
   type InventoryItem,
 } from "../data/inventory";
+
+import { supabase } from "../lib/supabase";
 
 type StorageLocation = "Pantry" | "Refrigerator" | "Freezer";
 type InventoryFilter = "All" | StorageLocation;
@@ -696,4 +699,3 @@ function NumberField({
       />
     </FormField>
   );
-}
