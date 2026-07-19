@@ -1,37 +1,122 @@
-import { Camera, CheckCircle2, Circle } from "lucide-react";
-import { useRef, useState } from "react";
-import { inventoryItems } from "../data/inventory";
+import {
+  Camera,
+  CheckCircle2,
+  Circle,
+  RefreshCw,
+} from "lucide-react";
+import {
+  type ChangeEvent,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+
+import { supabase } from "../lib/supabase";
+
+type InventoryRow = {
+  id: string;
+  name: string;
+  category: string;
+  location: "Pantry" | "Refrigerator" | "Freezer";
+  current_quantity: number;
+  minimum_quantity: number;
+  target_quantity: number;
+  unit: string;
+  preferred_store: string | null;
+};
+
+type ShoppingItem = InventoryRow & {
+  purchased: boolean;
+  quantityToBuy: number;
+};
 
 export default function Shopping() {
   const receiptInputRef = useRef<HTMLInputElement>(null);
 
-  const initialItems = inventoryItems
-    .filter((item) => item.current < item.minimum)
-    .map((item) => ({
-      ...item,
-      quantityToBuy: item.target - item.current,
-      purchased: false,
-    }));
+  const [shoppingItems, setShoppingItems] = useState<ShoppingItem[]>(
+    [],
+  );
 
-  const [shoppingItems, setShoppingItems] = useState(initialItems);
   const [receiptName, setReceiptName] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    loadShoppingList();
+  }, []);
+
+  async function loadShoppingList() {
+    setLoading(true);
+    setErrorMessage("");
+
+    const { data, error } = await supabase
+      .from("inventory_items")
+      .select("*")
+      .order("category")
+      .order("name");
+
+    if (error) {
+      console.error(error);
+      setErrorMessage("The shopping list could not be loaded.");
+      setLoading(false);
+      return;
+    }
+
+    const neededItems = (data as InventoryRow[])
+      .filter(
+        (item) =>
+          Number(item.current_quantity) <
+          Number(item.minimum_quantity),
+      )
+      .map((item) => ({
+        ...item,
+        current_quantity: Number(item.current_quantity),
+        minimum_quantity: Number(item.minimum_quantity),
+        target_quantity: Number(item.target_quantity),
+        quantityToBuy: Math.max(
+          0,
+          Number(item.target_quantity) -
+            Number(item.current_quantity),
+        ),
+        purchased: false,
+      }));
+
+    setShoppingItems(neededItems);
+    setLoading(false);
+  }
 
   function togglePurchased(id: string) {
     setShoppingItems((currentItems) =>
       currentItems.map((item) =>
         item.id === id
-          ? { ...item, purchased: !item.purchased }
-          : item
-      )
+          ? {
+              ...item,
+              purchased: !item.purchased,
+            }
+          : item,
+      ),
     );
   }
 
+  function handleReceiptSelection(
+    event: ChangeEvent<HTMLInputElement>,
+  ) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    setReceiptName(file.name);
+    event.target.value = "";
+  }
+
   const remainingCount = shoppingItems.filter(
-    (item) => !item.purchased
+    (item) => !item.purchased,
   ).length;
 
   return (
-    <main className="p-5 md:p-8">
+    <main className="p-4 pb-10 md:p-8">
       <div className="mx-auto max-w-4xl">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -44,18 +129,30 @@ export default function Shopping() {
             </h1>
 
             <p className="mt-2 text-stone-600">
-              Items below their target inventory level.
+              Automatically generated from inventory items below
+              minimum.
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => receiptInputRef.current?.click()}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-700 px-4 py-3 font-semibold text-white shadow-sm hover:bg-emerald-800"
-          >
-            <Camera size={20} />
-            Upload Receipt
-          </button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <button
+              type="button"
+              onClick={loadShoppingList}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-stone-300 bg-white px-4 py-3 font-semibold text-stone-700 hover:bg-stone-50"
+            >
+              <RefreshCw size={19} />
+              Refresh
+            </button>
+
+            <button
+              type="button"
+              onClick={() => receiptInputRef.current?.click()}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-700 px-4 py-3 font-semibold text-white hover:bg-emerald-800"
+            >
+              <Camera size={19} />
+              Upload Receipt
+            </button>
+          </div>
         </div>
 
         <input
@@ -64,48 +161,53 @@ export default function Shopping() {
           accept="image/*"
           capture="environment"
           className="hidden"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-
-            if (file) {
-              setReceiptName(file.name);
-            }
-          }}
+          onChange={handleReceiptSelection}
         />
 
         {receiptName && (
-          <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-            <p className="font-semibold text-emerald-800">
+          <section className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+            <p className="font-semibold text-emerald-900">
               Receipt selected
             </p>
 
-            <p className="mt-1 text-sm text-emerald-700">
+            <p className="mt-1 text-sm text-emerald-800">
               {receiptName}
             </p>
 
-            <p className="mt-1 text-sm text-stone-600">
-              Receipt analysis and automatic inventory updates will be
-              connected later.
+            <p className="mt-2 text-sm text-stone-600">
+              Receipt recognition and automatic inventory updates will
+              be connected next.
             </p>
-          </div>
+          </section>
         )}
 
-        <section className="mt-8 rounded-2xl border border-stone-200 bg-white shadow-sm">
+        {errorMessage && (
+          <section className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-800">
+            {errorMessage}
+          </section>
+        )}
+
+        <section className="mt-8 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-stone-200 p-5">
             <div>
               <h2 className="text-xl font-bold">Needed Items</h2>
 
               <p className="mt-1 text-sm text-stone-500">
-                {remainingCount} item{remainingCount === 1 ? "" : "s"} remaining
+                {remainingCount} item
+                {remainingCount === 1 ? "" : "s"} remaining
               </p>
             </div>
           </div>
 
-          {shoppingItems.length === 0 ? (
+          {loading ? (
+            <div className="p-8 text-center text-stone-500">
+              Loading shopping list...
+            </div>
+          ) : shoppingItems.length === 0 ? (
             <div className="p-8 text-center">
               <CheckCircle2
                 className="mx-auto text-emerald-600"
-                size={36}
+                size={38}
               />
 
               <p className="mt-3 font-semibold">
@@ -113,7 +215,7 @@ export default function Shopping() {
               </p>
 
               <p className="mt-1 text-sm text-stone-500">
-                Nothing is currently below its target inventory level.
+                Nothing is currently below its minimum quantity.
               </p>
             </div>
           ) : (
@@ -123,7 +225,7 @@ export default function Shopping() {
                   key={item.id}
                   type="button"
                   onClick={() => togglePurchased(item.id)}
-                  className="flex w-full items-center gap-4 p-5 text-left transition hover:bg-stone-50"
+                  className="flex w-full items-center gap-4 p-5 text-left hover:bg-stone-50"
                 >
                   {item.purchased ? (
                     <CheckCircle2
@@ -149,8 +251,14 @@ export default function Shopping() {
                     </p>
 
                     <p className="mt-1 text-sm text-stone-500">
-                      {item.category} · Current: {item.current} {item.unit}
+                      {item.category} · {item.location}
                     </p>
+
+                    {item.preferred_store && (
+                      <p className="mt-1 text-xs text-stone-500">
+                        Preferred store: {item.preferred_store}
+                      </p>
+                    )}
                   </div>
 
                   <div className="text-right">
@@ -165,7 +273,11 @@ export default function Shopping() {
                     </p>
 
                     <p className="mt-1 text-sm text-stone-500">
-                      Target: {item.target} {item.unit}
+                      Current: {item.current_quantity} {item.unit}
+                    </p>
+
+                    <p className="text-sm text-stone-500">
+                      Target: {item.target_quantity} {item.unit}
                     </p>
                   </div>
                 </button>
